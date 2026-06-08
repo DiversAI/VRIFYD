@@ -51,10 +51,10 @@ HTTP and a mental model of "a process handling requests" is enough.
 
 ## 2. Logistics
 
-- **Total time:** ~2.5–3 hours, designed as **two sessions** with a break.
-  - **Session 1 — Substrates & coordination** (~75–90 min): Patterns 1 & 2,
+- **Total time:** ~1.5 hours, designed as **two sessions** with a break.
+  - **Session 1 — Substrates & coordination** (~50 min): Patterns 1 & 2,
     including the hand-rolled ack exercise.
-  - **Session 2 — Let the platform (and agents) do it** (~75–90 min): Pattern 3
+  - **Session 2 — Let the platform (and agents) do it** (~50 min): Pattern 3
     and the author-a-task finale, where coding agents come out.
 - **Format:** live-coded demos + two hands-on labs. Learners follow along on their
   own machines.
@@ -64,11 +64,7 @@ HTTP and a mental model of "a process handling requests" is enough.
 
 ### Compressed variants
 
-- **90-minute version:** Demo Patterns 1 & 2 yourself (don't run the ack lab as a
-  group — walk the solution), then run the Session 2 author-a-task lab in full.
-  The finale is the highest-value hands-on, so protect it.
-- **45-minute lightning talk:** Demo all three patterns offline (mock model), skip
-  both labs, land the comparison table in §3.
+TODO
 
 ---
 
