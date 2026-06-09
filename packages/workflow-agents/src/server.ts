@@ -60,7 +60,11 @@ export async function createApp(): Promise<Hono> {
     const finished = await started.get();
     const ok = finished.status === "succeeded" || finished.status === "completed";
     if (!ok) throw new Error(finished.error ? String(finished.error) : "workflow failed");
-    return finished.results;
+    // The SDK returns the task's return value wrapped in a results array (one
+    // entry per invocation). Unwrap the single result so callers see the same
+    // shape the in-process path returns directly.
+    const results = finished.results;
+    return Array.isArray(results) ? results[0] : results;
   }
 
   /**
