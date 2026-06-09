@@ -12,10 +12,10 @@ tracks, demos, the "aha" moments, common failure modes, and the worked solutions
 
 ## 1. What this workshop is
 
-One sentence: **the agent never changes; the substrate does all the work.**
+One sentence: **the agent never changes. The substrate does all the work.**
 
-Learners build a single agentic code-review pipeline once, then run it on three
-Render execution substrates and *feel* the trade-offs:
+Learners deploy a single agentic code-review pipeline three ways on Render and
+*feel* the trade-offs:
 
 | # | Pattern | Substrate | The lesson |
 | --- | --- | --- | --- |
@@ -26,7 +26,7 @@ Render execution substrates and *feel* the trade-offs:
 The pipeline (`prepareDiff → filterDiff → [security ‖ performance ‖ ux?] → judge`)
 lives in the shared [`@workshop/agent`](../shared/agent) package and is **byte-for-byte
 identical** across all three. That invariance *is* the curriculum: every time a
-learner says "but didn't we have to rewrite the agent?" the answer is no — go look.
+learner says "but didn't we have to rewrite the agent?" the answer is no. Go look.
 
 ### Learning objectives
 
@@ -36,8 +36,8 @@ By the end, a learner can:
 2. Describe what a queue + worker buys you (durability, scale-out, retries) and
    what it *costs* you (acks, consumer groups, pub/sub — code you own and debug).
 3. Hand-write at-least-once delivery semantics (ack on success, retry on failure).
-4. Author a Render Workflow `task()` — a plain async function + a config object —
-   and get retries, isolation, timeouts, and traces for free.
+4. Author and ship a Render Workflow `task()` — a plain async function + a config
+   object — and get retries, isolation, timeouts, and traces for free.
 5. Compose agents as tasks and fan them out, and articulate *why* the same
    guarantees took a whole queue in Pattern 2 and a config object in Pattern 3.
 
@@ -56,11 +56,11 @@ HTTP and a mental model of "a process handling requests" is enough.
     including the hand-rolled ack exercise.
   - **Session 2 — Let the platform (and agents) do it** (~50 min): Pattern 3
     and the author-a-task finale, where coding agents come out.
-- **Format:** live-coded demos + two hands-on labs. Learners follow along on their
-  own machines.
+- **Format:** live deploys + two hands-on labs. Learners follow along on their own
+  Render accounts and machines.
 - **Group size:** works 1:1 up to ~30 with a helper for debugging environments.
-- **Delivery:** in-person or remote. Remote works fine; just have learners share
-  terminal output when they get stuck rather than screensharing the whole IDE.
+- **Delivery:** in-person or remote. Remote works fine. Have learners share service
+  URLs, CLI output, and Dashboard screenshots when they get stuck.
 
 ### Compressed variants
 
@@ -88,11 +88,12 @@ Pattern 3   [ web ] → Render Workflows → [ task per agent ]  you own: nothin
 
 The emotional arc you're selling:
 
-1. **Pattern 1 feels good** ("look how simple") → then you break it on stage.
-2. **Pattern 2 feels powerful** ("now it's durable and scales!") → then they write
-   the acks by hand and feel how much coordination they now *own*.
+1. **Pattern 1 feels good** ("look, it's live") → then you break it on stage.
+2. **Pattern 2 is powerful** ("now it's durable and scales!") → then they write
+   the acks by hand and see how much coordination they now *own*.
 3. **Pattern 3 feels like cheating** ("wait, that's it?") → the guarantees from
-   Pattern 2 collapse into `retry: { maxRetries: 2 }`.
+   Pattern 2 collapse into `retry: { maxRetries: 2 }`, a CLI-created Workflow, and
+   a trace.
 
 If learners leave able to recite "the agent never changed, the substrate did the
 work," the workshop succeeded.
@@ -108,26 +109,34 @@ Facilitator machine:
 
 - [ ] Node >= 22.12 (`node -v`).
 - [ ] `npm install` from the repo root completes clean.
-- [ ] Postgres running; `createdb agents_workshop` (or a `DATABASE_URL` you trust).
-- [ ] Redis/Valkey running (`redis-server &` or `docker run -p 6379:6379 redis`).
+- [ ] Render CLI installed, logged in, and pointed at the right workspace
+      (`render login`, then `render workspace set`).
+- [ ] A fork or workshop repo connected to Render.
+- [ ] Pattern 1 and Pattern 2 Blueprints tested from that repo.
+- [ ] Pattern 3 hybrid path rehearsed with the web+Postgres Blueprint and
+      `render workflows create`.
+- [ ] Optional local Postgres running with `createdb agents_workshop`.
+- [ ] Optional local Redis/Valkey running with `redis-server &` or
+      `docker run -p 6379:6379 redis`.
 - [ ] `npm test` is green (this proves the whole thing works on the mock model).
 - [ ] A couple of **demo PR URLs** picked out — one small, one with frontend files
       so the `ux` reviewer fires. Public repos need no token. e.g.
       `https://github.com/octocat/Hello-World/pull/9681`.
-- [ ] Decide: real model or mock? With **no API key** everything runs on a
-      deterministic mock model — totally fine and fully offline. Set
+- [ ] Decide: real model or mock? With **no LLM provider API key** everything runs
+      on a deterministic mock model — totally fine and fully offline. Set
       `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` only if you want live reviews. Have
       `AGENT_MODEL=mock` ready as a fallback if the gateway misbehaves on stage.
-- [ ] (Optional, for Pattern 3 deploy beat) a Render account + `render` CLI.
 
 Room / screen:
 
 - [ ] Terminal font large enough to read from the back.
-- [ ] Pre-`cd` into the repo in three terminal tabs (you'll need them for Pattern 2).
-- [ ] Browser tab open to `http://localhost:3000/` (the telemetry viewer).
+- [ ] Browser tabs open to the Render Dashboard, the learner-facing docs, and one
+      deployed service URL.
+- [ ] Terminal tabs ready for `render services`, `render logs`, and
+      `render workflows`.
 
-Tell learners up front: **no API key is required.** This removes the single biggest
-source of "it doesn't work for me."
+Tell learners up front: **no LLM provider API key is required.** This removes the
+single biggest source of "it doesn't work for me."
 
 ---
 
@@ -138,13 +147,14 @@ Each module below has: **objective**, **talk track**, **do this live**, **the ah
 
 ### Module 0 — Setup & framing (10 min)
 
-- **Objective:** everyone runs, and everyone holds the spine in §3.
+- **Objective:** everyone can deploy, and everyone holds the spine in §3.
 - **Talk track:** "We're going to build a code reviewer once and run it three ways.
   Watch what *doesn't* change." Draw the spine.
-- **Do this live:** `npm install`, then `npm test` to show green. Point out the
-  monorepo: `shared/*` is the constant, `packages/*` are the three substrates.
-- **Pitfall:** learners on Node < 22.12, or no Postgres. Have them fall back to the
-  in-memory DB by simply leaving `DATABASE_URL` unset (works for Pattern 1).
+- **Do this live:** confirm `render login`, `render workspace set`, and
+  `npm install`. Point out the monorepo: `shared/*` is the constant, `packages/*`
+  are the three substrates.
+- **Pitfall:** learners without Git provider access in Render. Pair them with a
+  helper or have them follow the facilitator deploy while they keep coding locally.
 - **CFU:** "Which folder holds the agent itself?" (Answer: `shared/agent`, not any
   of the three packages.)
 
@@ -155,22 +165,25 @@ Reference: [`docs/00-setup.md`](../docs/00-setup.md).
 - **Objective:** establish the baseline and make its breakage visceral.
 - **Talk track:** "Simplest thing that works: the agent runs *inside the request*."
 - **Do this live:**
-  1. `npm run naive:dev`, open `http://localhost:3000/`, submit a demo PR.
-  2. Open the row → show per-agent findings and spans (LLM turns + tool calls).
-  3. Show the handler in [`packages/naive-agent/src/server.ts`](../packages/naive-agent/src/server.ts):
+  1. Deploy [`packages/naive-agent/render.yaml`](../packages/naive-agent/render.yaml)
+     as a Blueprint.
+  2. Open the live Web Service URL and submit a demo PR.
+  3. Open the row → show per-agent findings and spans (LLM turns + tool calls).
+  4. Tail logs with `render logs --resources <service-id> --tail`.
+  5. Show the handler in [`packages/naive-agent/src/server.ts`](../packages/naive-agent/src/server.ts):
      the POST handler `await`s `runReview()` and *only then* responds. Read the
      file's top comment aloud — it names the three failure modes.
 - **The aha:** it's complete and simple. Sit in that for a second before breaking it.
 - **Break it on stage (the motivation for Pattern 2):**
-  - Submit a large PR (or talk through it) → the request blocks; a slow model or a
+  - Submit a large PR (or talk through it) → the request blocks. A slow model or a
     proxy timeout kills it.
-  - "What happens if I redeploy mid-review?" → in-flight work is lost; nowhere
+  - "What happens if I redeploy mid-review?" → in-flight work is lost. Nowhere
     durable for it to live.
-  - Concurrent users share one process; the "parallel" reviewers contend for one box.
-- **Pitfall:** if using a real model, a big PR can genuinely time out — that's the
-  point, but don't let it derail; switch to a small PR to keep moving.
-- **CFU:** "Name two reasons this design fails under load." (timeouts; lost on
-  deploy/crash; no independent scale.)
+  - Concurrent users share one process. The "parallel" reviewers contend for one box.
+- **Pitfall:** if using a real model, a big PR can genuinely time out. That's the
+  point, but don't let it derail. Switch to a small PR to keep moving.
+- **CFU:** "Name two reasons this design fails under load." (timeouts, lost on
+  deploy/crash, no independent scale.)
 
 Reference: [`docs/01-naive-agent.md`](../docs/01-naive-agent.md).
 
@@ -178,26 +191,23 @@ Reference: [`docs/01-naive-agent.md`](../docs/01-naive-agent.md).
 
 - **Objective:** show that moving the *substrate* (not the agent) buys durability
   and scale — and surface the coordination cost.
-- **Talk track:** "Same `runReview()`. The web tier becomes a thin producer; a
+- **Talk track:** "Same `runReview()`. The web tier becomes a thin producer. A
   background worker consumes a Valkey queue and runs the review out-of-band."
-- **Do this live (three terminals):**
-  ```sh
-  npm run worker:web        # A — http://localhost:3000 (producer, returns 202)
-  npm run worker:worker     # B — one worker
-  npm run worker:worker     # C — a second worker (scale-out)
-  ```
-  1. Submit several PRs quickly → watch workers **share the load** (concurrency).
-  2. Start another worker → throughput rises with **no code change** (scale-out).
-  3. Kill the **web** service mid-review → the worker finishes; the result is still
-     in Postgres when web restarts (**resilience**).
+- **Do this live:**
+  1. Deploy [`packages/worker-agents/render.yaml`](../packages/worker-agents/render.yaml)
+     as a Blueprint.
+  2. Submit several PRs quickly → watch the web service enqueue and return 202.
+  3. Tail the worker logs with `render logs --resources <worker-id> --tail`.
+  4. Scale the Background Worker in the Dashboard or update `numInstances`.
+  5. Restart or redeploy the web service mid-review → the worker keeps owning the job.
 - **The aha:** the agent code is *identical to Pattern 1* — point at the comment in
   `kv.ts` that says `runReview()` is unchanged. Only *where it runs* moved.
 - **Now flip it:** open [`packages/worker-agents/src/kv.ts`](../packages/worker-agents/src/kv.ts)
   and scroll the file slowly. "This is the price. The stream, the consumer group,
   blocking reads, acks, retry-on-failure, the pub/sub progress bus — all of this is
   coordination code *you* now own and debug." This sets up the lab.
-- **Pitfall:** no Redis running → web returns errors on submit. Confirm
-  `redis-server` is up and `REDIS_URL` is set.
+- **Pitfall:** Blueprint sync or service deploy still running → the web app can open
+  before the worker is ready. Check service health and worker logs first.
 - **CFU:** "What did we have to add going from Pattern 1 to Pattern 2, and what did
   we change in the agent?" (Added: queue/worker/acks/pub-sub. Changed in agent:
   nothing.)
@@ -215,7 +225,7 @@ makes Pattern 3 land harder.
   currently throws. The exercise contract is in the comment block right above it.
 - **The task:** handle one delivered stream entry and decide whether to ack.
   - **Success** → `XACK` so the group never redelivers it.
-  - **Failure** (handler throws) → **don't** ack; log and return so the message
+  - **Failure** (handler throws) → **don't** ack. Log and return so the message
     stays pending and gets retried. **Never let the error escape the loop** (that
     would kill the consumer).
 - **Verify (red → green):**
@@ -234,6 +244,8 @@ makes Pattern 3 land harder.
     propagate. Both defeat the retry. Call this out explicitly.
 - **The aha to name out loud:** "You just implemented at-least-once delivery. Hold
   onto this feeling — in Session 2 you get the exact same guarantee for free."
+- **Deploy beat:** push the fix and redeploy the worker. The lab is local because it
+  is a tight red-to-green loop, but the result runs live.
 - **Solution:** see §8 and [`docs/02-worker-agents.md`](../docs/02-worker-agents.md).
 
 > Break here between sessions.
@@ -246,20 +258,21 @@ makes Pattern 3 land harder.
   author is a **task**: a plain async function + a config object."
 - **Do this live:**
   ```sh
-  cd packages/workflow-agents
-  cp .env.example .env
-  npm run dev:workflows      # A — local Render task runtime + gateway
-  # B:
-  render workflows tasks list --local
-  # choose code-review → run → input:
-  #   { "url": "https://github.com/<owner>/<repo>/pull/<n>", "labels": [] }
+  # deploy packages/workflow-agents/render.yaml first
+  render workflows create ...     # Workflow service
+  render workflows tasks list
+  render workflows start workflow-agents/code-review \
+    --input='[{"url":"https://github.com/<owner>/<repo>/pull/<n>","labels":[]}]'
   ```
+  Use [`docs/03-workflow-agents.md`](../docs/03-workflow-agents.md) for the full
+  command block. Call out the required env-var step plainly: the web service and
+  Workflow service need the same Postgres connection string.
 - **Show the code that matters:**
   - [`agentTask.ts`](../packages/workflow-agents/src/agentTask.ts): the *entire*
     bridge — `task(agent.name, ({input}) => agent.run(input, ...))`. One function.
   - [`code-review/index.ts`](../packages/workflow-agents/src/workflows/code-review/index.ts):
-    `prepareDiff`/`filterDiff` are plain in-process functions; each reviewer is a
-    `task()`; `Promise.all` fans them out; `ux` is conditional on frontend files.
+    `prepareDiff`/`filterDiff` are plain in-process functions. Each reviewer is a
+    `task()`. `Promise.all` fans them out. `ux` is conditional on frontend files.
 - **The aha:** put the three "fan-out" implementations side by side (this table is
   the punchline of the whole workshop):
 
@@ -269,9 +282,9 @@ makes Pattern 3 land harder.
   | worker | `XADD` → consumer group → acks → pub/sub | the whole queue (Lab 1!) |
   | workflow | `Promise.all([agent.run(), ...])` where `agent` is a `task()` | nothing |
 
-- **Pitfall:** `render workflows` needs the local dev runtime up (terminal A). If
-  the list is empty, the dev process isn't running or the workflow didn't
-  auto-discover (must be `src/workflows/<name>/index.ts` exporting a `task()`).
+- **Pitfall:** if a live task list is empty, the Workflow version might not be
+  released yet, or the workflow didn't auto-discover. It must be
+  `src/workflows/<name>/index.ts` exporting a `task()`.
 - **CFU:** "Where are the retries in Pattern 3?" (In the task's config object —
   compare to the hand-written retry you wrote in Lab 1.)
 
@@ -280,50 +293,54 @@ Reference: [`docs/03-workflow-agents.md`](../docs/03-workflow-agents.md).
 ### LAB 2 — Author a task (25–35 min, the finale)
 
 This is the highest-value segment. **Now coding agents come out.** The `task()` API
-is small enough that an agent reasons about it trivially — the goal is to feel how
-agent-native this substrate is.
+is small enough that an agent reasons about it directly. Learners compose tasks,
+force retries, and inspect the live trace.
 
 - **Starter:** [`your-review/index.ts`](../packages/workflow-agents/src/workflows/your-review/index.ts)
   is already a working sandbox. It auto-discovered with zero registration.
 - **Sequence (each step has a payoff):**
-  1. **Run what's there.** `render workflows tasks list --local` → `your-review` →
-     run with `{ "url": "...pull/<n>" }`. Payoff: "you authored a task and never
+  1. **Preview what's there.** `render workflows tasks list --local` → `your-review`
+     → run with `{ "url": "...pull/<n>" }`. Payoff: "you authored a task and never
      registered it anywhere — `loader.ts` found it because the folder exists."
   2. **Compose an agent as a task.** Extend the sandbox to run a reviewer as its own
      task and return its findings. Encourage learners to point their coding agent
      (Cursor/Claude/etc.) at the ideas at the bottom of the file.
   3. **See the power — force a retry.** Add `if (Math.random() < 0.5) throw new
-     Error("flaky!")` at the top of the body. Re-run a few times; watch Render retry
+     Error("flaky!")` at the top of the body. Re-run a few times and watch Render retry
      in a fresh instance per the `retry` config — no try/catch, no dead-letter, no
      queue. **Remove it when done.**
   4. **Bonus — fan out** both reviewers with `Promise.all` (mirrors `code-review`).
+  5. **Ship it live.** Push the task, release a Workflow version, start the live
+     `your-review` task, and open the trace in the Dashboard.
 - **Bonus points (for fast finishers or a take-home):** [04 — Bonus points](../docs/04-author-a-task.md#bonus-points)
   has three guided, independent challenges — a **judge reflection loop**, **wiring
   in an MCP tool**, and a **human-in-the-loop gate**. Each reinforces the spine:
-  the agentic capability is yours to write; durability/isolation/tracing stay the
+  the agentic capability is yours to write. Durability/isolation/tracing stay the
   platform's. Point a coding agent at them and let learners drive.
 - **The aha (say this verbatim-ish):** "You just added durable, retried, isolated,
   traced, parallel execution by writing a plain function and a config object. In
   Lab 1 that same guarantee took a queue, a consumer group, acks, and a pub/sub bus
-  — all code you owned. The agent never changed; the substrate did the work."
+  — all code you owned. The agent never changed. The substrate did the work."
 - **Pitfall:** import path is `../../agentTask.js` (note the `.js`, NodeNext). If a
   learner's agent writes `.ts`, it'll fail to resolve.
 - **CFU:** "What's the difference between a *step* and a *task* here?" (A step is a
-  plain function for pure logic; a task is wrapped in `task()` for isolation/retries/
+  plain function for pure logic. A task is wrapped in `task()` for isolation/retries/
   traces. See `overview()` vs the exported task in `your-review`.)
 - **Solution:** §8 and [`docs/04-author-a-task.md`](../docs/04-author-a-task.md).
 
-### Module 4 — Deploy & close (10 min, optional deploy)
+### Module 4 — Close (10 min)
 
-- Each pattern ships a Blueprint (`render.yaml`): web+Postgres (naive), web+worker+
-  Valkey+Postgres (worker), web+Postgres+Workflows (workflow). Deploy is `git push`.
-- In production, `RENDER_USE_LOCAL_DEV=false` makes the Pattern 3 gateway dispatch
-  real Workflow tasks.
+- Pattern 1 and Pattern 2 use Blueprints: web+Postgres (naive), then web+worker+
+  Key Value+Postgres (worker).
+- Pattern 3 uses a Blueprint for web+Postgres and the CLI for the Workflow service,
+  task runs, logs, and versions.
+- In production, leave `RENDER_USE_LOCAL_DEV` unset so the Pattern 3 gateway
+  dispatches real Workflow tasks.
 - **Close on the spine.** Re-draw it. Ask the room: "What changed in the agent
   across all three?" (Nothing.) That's the takeaway.
 - **Send them home with the map.** Point at [05 — Future iterations](../docs/05-future-iterations.md):
   an eval harness, guardrails, circuit breakers, and observability deep-dives — the
-  production road, framed as "more steps, tasks, budgets, and tracers; still the
+  production road, framed as "more steps, tasks, budgets, and tracers. Still the
   same agent."
 
 ---
@@ -331,15 +348,15 @@ agent-native this substrate is.
 ## 6. The demo flow at a glance (print this)
 
 ```
-Setup        npm install ; npm test (green) ; draw the spine
-Pattern 1    npm run naive:dev → submit PR → show spans → break it (timeout/deploy)
-Pattern 2    worker:web + worker:worker ×2 → concurrency / scale-out / kill web
+Setup        render login → render workspace set → npm install → draw the spine
+Pattern 1    Blueprint deploy → live URL → submit PR → show spans/logs → break it
+Pattern 2    Blueprint deploy → submit PRs → tail worker logs → scale worker
              → open kv.ts: "this is the price"
 LAB 1        implement processEntry → npm run test:worker (red→green)
 ── break ──
-Pattern 3    dev:workflows → run code-review → show agentTask.ts + Promise.all
+Pattern 3    Blueprint web+DB → workflows create → run code-review → show trace
              → side-by-side fan-out table
-LAB 2        run your-review → compose agent → force retry → fan out (bonus)
+LAB 2        preview your-review → compose agent → force retry → ship live
 Close        re-draw spine: "the agent never changed"
 ```
 
@@ -349,7 +366,7 @@ Close        re-draw spine: "the agent never changed"
 
 | Symptom | Cause / fix |
 | --- | --- |
-| Reviews never run / agent output looks canned | No API key → it's the **mock model**. Expected. Set `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` for real reviews. |
+| Reviews never run / agent output looks canned | No LLM provider API key → it's the **mock model**. Expected. Set `ANTHROPIC_API_KEY`/`OPENAI_API_KEY` for real reviews. |
 | Pattern 2 web errors on submit | Redis/Valkey not running, or `REDIS_URL` wrong. `redis-server &`. |
 | `npm run test:worker` can't connect | Same — needs a live Redis. Prefix with `REDIS_URL=redis://127.0.0.1:6379`. |
 | Postgres connection refused | `createdb agents_workshop` or fix `DATABASE_URL`. For Pattern 1 you can leave it unset (in-memory). |
@@ -365,7 +382,7 @@ Common conceptual questions:
   import everywhere. Open all three packages and grep — the diff is the substrate.
 - **"Why hand-write acks if Workflows does it?"** So you understand what the
   platform is doing *for* you. The lab is the setup for the payoff.
-- **"Is a step the same as a task?"** No — a step is plain logic (no `task()`); a
+- **"Is a step the same as a task?"** No — a step is plain logic (no `task()`). A
   task gets isolation/retries/traces. Show `overview()` vs the exported task.
 
 ---
